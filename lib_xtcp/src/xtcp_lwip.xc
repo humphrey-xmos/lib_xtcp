@@ -42,6 +42,8 @@ static void ipv4_multicast_to_mac(const xtcp_ipaddr_t ipv4_addr,
   macaddr_filter.appdata = 0;
 }
 
+static const xtcp_ipaddr_t all_hosts_mcast_group = {224, 0, 0, 1};
+
 // this helper function is needed to allow null to be passed in when
 // timestamps are not required (taking a pointer and casting it to unsafe
 // appears to crash the compiler)
@@ -208,6 +210,12 @@ void xtcp_lwip(server xtcp_if i_xtcp[n_xtcp], static const unsigned n_xtcp,
     // Add broadcast filter, needed for ARP
     memset(macaddr_filter.addr, 0xff, MACADDR_NUM_BYTES);
     i_eth_cfg.add_macaddr_filter(index, 0, macaddr_filter);
+
+    if (shim_is_igmp_enabled()) {
+      // Add all hosts multicast group address, needed for IGMP
+      ipv4_multicast_to_mac(all_hosts_mcast_group, macaddr_filter);
+      i_eth_cfg.add_macaddr_filter(index, 0, macaddr_filter);
+    }
 
     // Only allow ARP and IP packets to the stack
     i_eth_cfg.add_ethertype_filter(index, ETHTYPE_ARP);
